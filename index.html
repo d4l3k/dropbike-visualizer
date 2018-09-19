@@ -1,0 +1,154 @@
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.css' rel='stylesheet' />
+
+<style>
+body {
+  padding: 0;
+  margin: 0;
+  color: white;
+  font-family: 'Open Sans', 'Roboto', sans-serif;
+}
+#map{
+  width: 100vw;
+  height: 100vh;
+}
+#controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+#legend {
+  background: #12c2e9;
+  background: -webkit-linear-gradient(to right, #12c2e9, #c471ed, #f64f59);
+  background: linear-gradient(to right, #12c2e9, #c471ed, #f64f59);
+  display: inline-block;
+  width: 100px;
+  height: 5px;
+  margin: 0 5px;
+}
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#time {
+  width: 480px;
+}
+</style>
+
+<div id='map'></div>
+<div id='controls'>
+  <div class="column">
+    <span id='displayTime'></span>
+    <input type="range" id="time" name="volume" min="0" max="10000" />
+  </div>
+  Start
+  <span id="legend"></span>
+  End
+</div>
+
+<script>
+mapboxgl.accessToken =
+'pk.eyJ1IjoiZDRsM2siLCJhIjoiY2ptOGs3c3NwMHE2YzNxa2Q5bTc1cWV2cyJ9.AiwpzmG2c5SOIpoCeJJ20w';
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/dark-v9',
+  center: [-123.2460, 49.2606],
+  zoom: 15
+});
+
+const time = document.querySelector('#time')
+const displayTime = document.querySelector('#displayTime')
+
+fetch('./data/trips.json')
+  .then(resp => resp.json())
+  .then(trips => {
+    const earliest = Date.parse(trips[0].StartTime)
+    const last = Date.parse(trips[trips.length - 1].EndTime)
+
+    trips.forEach(trip => {
+      trip.Coords = trip.Coords.map(([lat, lng]) => [
+        lng + Math.random()*0.0001,
+        lat + Math.random()*0.0001
+      ])
+    })
+
+    const getTripData = () => {
+      const proportion = time.value / time.max
+      const now = earliest + proportion*(last-earliest)
+      displayTime.innerText = new Date(now)
+      console.log(earliest, last, now)
+
+      const features = []
+      console.log(trips.length)
+      trips.forEach(trip => {
+        const start = Date.parse(trip.StartTime)
+        const end = Date.parse(trip.EndTime)
+
+        if (now < start || now > end) {
+          return
+        }
+
+        let coordinates = [
+          [trip.Start.Longitude, trip.Start.Latitude],
+          [trip.End.Longitude, trip.End.Latitude],
+        ]
+
+        if (trip.Coords) {
+          coordinates = trip.Coords
+        }
+
+        features.push({
+          "type": "Feature",
+          "properties": {},
+          "geometry": {
+            "type":
+            "LineString",
+            "coordinates": coordinates
+          }
+        })
+      });
+      return {
+        "type": "FeatureCollection",
+        "features": features,
+      }
+    }
+
+    map.addLayer({
+      "id": "route",
+      "type": "line",
+      "source": {
+        "type": "geojson",
+        lineMetrics: true,
+        "data": getTripData()
+      },
+      "layout": {
+        "line-join": "round",
+        "line-cap": "round"
+      },
+      "paint": {
+        "line-color": "#f00",
+        "line-width": 1,
+        'line-gradient': [
+          'interpolate',
+          ['linear'],
+          ['line-progress'],
+          //0, "rgba(0, 0, 255, 0.5)",
+          //1, "rgba(255, 0, 0, 0.5)",
+          0, "#12c2e9",
+          0.5, "#c471ed",
+          1, "#f64f59"
+        ]
+      }
+    });
+
+    time.addEventListener('input', () => {
+      map.getSource('route').setData(getTripData());
+    })
+  })
+</script>
