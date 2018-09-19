@@ -22,6 +22,20 @@ body {
   justify-content: center;
   align-items: center;
   padding: 16px;
+  flex-wrap: wrap;
+
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
+}
+a {
+  color: #12c2e9;
+  text-decoration: none;
+}
+a:hover, a:active, a:focus {
+  text-decoration: underline;
 }
 #legend {
   background: #12c2e9;
@@ -39,6 +53,7 @@ body {
 }
 #time {
   width: 480px;
+  max-width: 100vw;
 }
 </style>
 
@@ -54,6 +69,7 @@ body {
   <div class="column">
     <span id='displayTime'></span>
     <input type="range" id="time" min="0" max="10000" value="100"/>
+    <span>Created by <a href="https://fn.lc">Tristan Rice</a></span>
   </div>
   Start
   <span id="legend"></span>
