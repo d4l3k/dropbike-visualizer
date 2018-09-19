@@ -5,6 +5,7 @@ body {
   padding: 0;
   margin: 0;
   color: white;
+  background-color: #191A1A;
   font-family: 'Source Sans Pro', sans-serif;
   font-size: 14pt;
 }
@@ -47,9 +48,12 @@ body {
 
 <div id='map'></div>
 <div id='controls'>
+  <input type="checkbox" id="viewAll" />
+  <label for="viewAll">View All</label>
+
   <div class="column">
     <span id='displayTime'></span>
-    <input type="range" id="time" name="volume" min="0" max="10000" />
+    <input type="range" id="time" min="0" max="10000" value="100"/>
   </div>
   Start
   <span id="legend"></span>
@@ -71,10 +75,12 @@ const map = new mapboxgl.Map({
 
 const time = document.querySelector('#time')
 const displayTime = document.querySelector('#displayTime')
+const viewAll = document.querySelector('#viewAll')
 
-fetch('./data/trips.json')
-  .then(resp => resp.json())
-  .then(trips => {
+const tripData = fetch('./data/trips.json').then(resp => resp.json())
+
+map.on('load', () => {
+  tripData.then(trips => {
     const earliest = Date.parse(trips[0].StartTime)
     const last = Date.parse(trips[trips.length - 1].EndTime)
 
@@ -92,15 +98,13 @@ fetch('./data/trips.json')
       const proportion = time.value / time.max
       const now = earliest + proportion*(last-earliest)
       displayTime.innerText = new Date(now)
-      console.log(earliest, last, now)
 
       const features = []
-      console.log(trips.length)
       trips.forEach(trip => {
         const start = Date.parse(trip.StartTime)
         const end = Date.parse(trip.EndTime)
 
-        if (now < start || now > end) {
+        if (!viewAll.checked && (now < start || now > end)) {
           return
         }
 
@@ -157,8 +161,12 @@ fetch('./data/trips.json')
       }
     });
 
-    time.addEventListener('input', () => {
+    const refreshData = () => {
       map.getSource('route').setData(getTripData());
-    })
+    }
+
+    time.addEventListener('input', refreshData)
+    viewAll.addEventListener('input', refreshData)
   })
+})
 </script>
